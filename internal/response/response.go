@@ -16,24 +16,33 @@ const (
 	INTERNAL_SERVER_ERROR StatusCode = 500
 )
 
-func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
+type Writer struct {
+    w io.Writer
+}
+
+func NewWriter(w io.Writer) *Writer {
+    return &Writer{w: w}
+}
+
+
+func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 	switch statusCode {
 		case OK:
-			_, err := w.Write([]byte("HTTP/1.1 200 OK\r\n"))
+			_, err := w.w.Write([]byte("HTTP/1.1 200 OK\r\n"))
 			return err
 		case BAD_REQUEST:
-			_, err := w.Write([]byte("HTTP/1.1 400 Bad Request\r\n"))
+			_, err := w.w.Write([]byte("HTTP/1.1 400 Bad Request\r\n"))
 			return err
 		case INTERNAL_SERVER_ERROR:
-			_, err := w.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n"))
+			_, err := w.w.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n"))
 			return err
 		default:
-			_, err := w.Write([]byte(fmt.Sprintf("HTTP/1.1 %d \r\n", statusCode)))
+			_, err := w.w.Write([]byte(fmt.Sprintf("HTTP/1.1 %d \r\n", statusCode)))
 			return err
 	}
 }
 
-func GetDefaultHeaders(contentLen int) headers.Headers {
+func (w *Writer) GetDefaultHeaders(contentLen int) headers.Headers {
 	headers := headers.Headers{}
 
 	headers.Set("Content-Type", "text/html")
@@ -43,13 +52,18 @@ func GetDefaultHeaders(contentLen int) headers.Headers {
 	return headers
 }
 
-func WriteHeaders(w io.Writer, headers headers.Headers) error {
+func (w *Writer) WriteHeaders(headers headers.Headers) error {
 	for key,val := range headers {
-		_, err := w.Write([]byte(key + ":" + val + "\r\n"));
+		_, err := w.w.Write([]byte(key + ":" + val + "\r\n"));
 		if err != nil {
 			return err
 		}
 	}
-	_, err := w.Write([]byte("\r\n"))
+	_, err := w.w.Write([]byte("\r\n"))
+	return err
+}
+
+func (w *Writer) WriteBody(data []byte) error {
+	_, err := w.w.Write(data);
 	return err
 }
