@@ -3,6 +3,9 @@ package server
 import (
 	"fmt"
 	"net"
+
+	"github.com/vijayvenkatj/http-protocol/internal/headers"
+	"github.com/vijayvenkatj/http-protocol/internal/response"
 )
 
 type Server struct {
@@ -58,15 +61,15 @@ func (server *Server) handle(conn net.Conn) {
     buf := make([]byte, 1024)
     conn.Read(buf)
 
-    body := "Hello World!"
-    response := fmt.Sprintf(
-        "HTTP/1.1 200 OK\r\n"+
-            "Content-Type: text/plain\r\n"+
-            "Content-Length: %d\r\n"+
-            "\r\n%s",
-        len(body),
-        body,
-    )
+    response.WriteStatusLine(conn,200);
 
-    conn.Write([]byte(response))
+    headers := headers.NewHeaders();
+    headers.Set("Content-Length","0");
+    headers.Set("Connection","close");
+    headers.Set("Content-Type","text/plain");
+
+    err := response.WriteHeaders(conn,headers)
+    if err != nil {
+        return
+    }
 }
