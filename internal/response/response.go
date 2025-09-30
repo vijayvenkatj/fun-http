@@ -54,7 +54,7 @@ func (w *Writer) GetDefaultHeaders(contentLen int) headers.Headers {
 
 func (w *Writer) WriteHeaders(headers headers.Headers) error {
 	for key,val := range headers {
-		_, err := w.w.Write([]byte(key + ":" + val + "\r\n"));
+		_, err := w.w.Write([]byte(key + ": " + val + "\r\n"));
 		if err != nil {
 			return err
 		}
@@ -66,4 +66,44 @@ func (w *Writer) WriteHeaders(headers headers.Headers) error {
 func (w *Writer) WriteBody(data []byte) error {
 	_, err := w.w.Write(data);
 	return err
+}
+
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	lengthData := fmt.Sprintf("%x\r\n", len(p))
+
+	n1, err := w.w.Write([]byte(lengthData))
+	if err != nil {
+		return 0, err
+	}
+
+	n2, err := w.w.Write(p)
+	if err != nil {
+		return n1, err
+	}
+
+	n3, err := w.w.Write([]byte("\r\n"))
+	if err != nil {
+		return n1 + n2, err
+	}
+
+	return n1 + n2 + n3, nil
+}
+
+
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+    // only write the 0-chunk marker, leave trailers for later
+    return w.w.Write([]byte("0\r\n"))
+}
+
+func (w *Writer) WriteTrailers(h headers.Headers) error {
+    for key, val := range h {
+        // Note the required colon + space
+        _, err := w.w.Write([]byte(key + ": " + val + "\r\n"))
+        if err != nil {
+            return err
+        }
+    }
+    // End trailers with CRLF
+    _, err := w.w.Write([]byte("\r\n"))
+    return err
 }
